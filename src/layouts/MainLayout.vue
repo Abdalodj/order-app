@@ -145,7 +145,7 @@
     </q-drawer>
 
     <q-page-container>
-      <router-view />
+      <router-view :model="model" />
     </q-page-container>
   </q-layout>
 </template>

@@ -8,9 +8,14 @@
       </q-breadcrumbs>
       <div class="q-px-sm text-h6">Products</div>
       <q-card class="text-grey-8">
+        <q-spinner v-if="showSpinner"
+                   color="primary"
+                   size="3em"
+                   :thickness="10"
+        />
         <q-card-section class="q-pa-none">
           <q-table class="no-shadow"
-                   :data="data"
+                   :data="that_data"
                    :columns="columns"
                    row-key="id"
                    :filter="filter"
@@ -26,15 +31,30 @@
                   <q-icon name="search"/>
                 </template>
                 <template v-slot:append>
-                  <q-icon name="close" @click="text = ''" class="cursor-pointer"/>
+                  <q-icon name="close" @click="filter = ''" class="cursor-pointer"/>
                 </template>
                 <template v-slot:hint>
                   SKU name
                 </template>
                 <template v-slot:after>
-                  <q-checkbox v-model="checkBoxPosition" label="Include inactive" class="q-pt-lg-sm text-subtitle1 text-dark" />
+                  <q-checkbox v-model="checkBoxPosition" label="Include inactive"
+                              class="q-pt-lg-sm text-subtitle1 text-dark"/>
                 </template>
               </q-input>
+
+              <q-file
+                class="hidden"
+                outlined
+                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                :value="file"
+                @input="importFile"
+                label="IMPORT NEW SKU(S)"
+                label-color="primary"
+                ref="myFile">
+                <template v-slot:prepend>
+                  <q-icon name="fas fa-file-import" color="primary"/>
+                </template>
+              </q-file>
 
               <q-btn
                 color="primary"
@@ -42,10 +62,11 @@
                 icon="fas fa-file-import"
                 label="IMPORT NEW SKU(S)"
                 no-caps
-                @click="exportTable"
+                @click="forFile"
               />
-              <q-page-sticky  position="bottom-right" :offset="[50, 18]" style="z-index: 1">
-                <q-btn round icon="refresh" color="blue" />
+              <span class="text-red text-h6">{{message}}</span>
+              <q-page-sticky position="bottom-right" :offset="[50, 18]" style="z-index: 1">
+                <q-btn round icon="refresh" color="blue" @click="fetchData"/>
               </q-page-sticky>
             </template>
           </q-table>
@@ -58,59 +79,52 @@
 <script>
 
 import {exportFile} from "quasar";
+import {getAllProducts, upload} from "src/store/module-example/crud-product";
 
-function wrapCsvValue(val, formatFn) {
-  let formatted = formatFn !== void 0
-    ? formatFn(val)
-    : val
-
-  formatted = formatted === void 0 || formatted === null
-    ? ''
-    : String(formatted)
-
-  formatted = formatted.split('"').join('""')
-  /**
-   * Excel accepts \n and \r in strings, but some other CSV parsers do not
-   * Uncomment the next two lines to escape new lines
-   */
-  // .split('\n').join('\\n')
-  // .split('\r').join('\\r')
-
-  return `"${formatted}"`
-}
 export default {
   name: "Catalog",
+  props: {
+    model: {
+      type: String,
+      default: ''
+    },
+  },
   data() {
     return {
+      file: null,
+      message: '',
+      that_data: [],
+      those_data: [],
+      showSpinner: false,
       filter: '',
       mode: 'list',
       checkBoxPosition: false,
       columns: [
         {
-          name: 'no',
+          name: 'id',
           align: 'left',
           label: 'No',
-          field: row => row.no,
+          field: row => row.id,
           sortable: true,
           headerClasses: 'bg-dark text-white',
           classes: 'bg-grey-2 ellipsis',
         },
         {
-          name: 'id',
+          name: 'catalog_name',
           align: 'left',
           label: 'Catalog',
-          field: 'id',
+          field: 'catalog_name',
           sortable: true,
           classes: 'bg-grey-2',
           headerClasses: 'bg-primary text-white',
           style: 'width: 900px; min-width: 400px'
         },
         {
-          name: 'desc',
+          name: 'color',
           required: true,
           label: 'Color',
           align: 'left',
-          field: 'name',
+          field: 'color',
           sortable: true,
           headerClasses: 'bg-dark text-white',
         },
@@ -124,100 +138,14 @@ export default {
           headerClasses: 'bg-dark text-white',
         },
         {
-          name: 'date',
+          name: 'quantity',
           align: 'right',
           label: 'Quantity',
-          field: 'date',
+          field: 'quantity',
           sortable: true,
           headerClasses: 'bg-dark text-white',
           style: 'max-width: 50px'
         }
-      ],
-      data: [
-        {
-          no: 1,
-          id: "U0001",
-          size: '1',
-          name: 'VLG',
-          date: '45'
-        },
-        {
-          no: 2,
-          id: "U0002",
-          size: '2',
-          name: 'VLG',
-          date: '45'
-        },
-        {
-          no: 3,
-          id: "U0003",
-          size: '2',
-          name: 'VLG',
-          date: '45'
-        },
-        {
-          no: 4,
-          id: "U0004",
-          size: '2',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 5,
-          id: "U0005",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 6,
-          id: "U0006",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 7,
-          id: "U0007",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 8,
-          id: "U0008",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 9,
-          id: "U0009",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 10,
-          id: "U0010",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 11,
-          id: "U0011",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
-        {
-          no: 12,
-          id: "U0012",
-          size: 'BALM',
-          name: 'LIP',
-          date: '45'
-        },
       ],
       pagination: {
         rowsPerPage: 0
@@ -225,36 +153,54 @@ export default {
     }
   },
   methods: {
-    exportTable() {
-      // naive encoding to csv format
-      const content = [this.columns.map(col => wrapCsvValue(col.label))].concat(
-        this.data.map(row => this.columns.map(col => wrapCsvValue(
-          typeof col.field === 'function'
-            ? col.field(row)
-            : row[col.field === void 0 ? col.name : col.field],
-          col.format
-        )).join(','))
-      ).join('\r\n')
-
-      const status = exportFile(
-        'table-export.csv',
-        content,
-        'text/csv'
-      )
-
-      if (status !== true) {
-        this.$q.notify({
-          message: 'Browser denied file download...',
-          color: 'negative',
-          icon: 'warning'
-        })
-      }
+    fetchData() {
+      this.showSpinner = true
+      return getAllProducts().then(t => {
+        this.that_data = t
+        this.those_data = t
+        this.showSpinner = false
+      })
+    },
+    forFile($event) {
+      this.$refs.myFile.pickFiles();
+    },
+    importFile(file) {
+      this.file = file;
+      let formData = new FormData();
+      formData.append('file', this.file)
+      upload(formData)
+      .then((message) => {
+        this.message = message
+        setTimeout(() => this.message = '', 5000)
+      })
     }
   },
   computed: {
     toggleInput() {
       return this.$q.screen.lt.md ? '' : 'width: 360px'
     }
+  },
+  watch: {
+    model: function (newVal, oldVal) {
+      let filteredData = []
+      this.that_data = this.those_data
+      if (newVal !== null && newVal !== '') {
+        this.that_data.forEach(value => {
+          if (value.location_name === newVal) {
+            filteredData.push(value)
+          }
+        })
+        this.that_data = filteredData
+      }
+    }
+  },
+  mounted() {
+    this.showSpinner = true
+    getAllProducts().then(t => {
+      this.that_data = t
+      this.those_data = t
+      this.showSpinner = false
+    })
   }
 }
 </script>
@@ -262,5 +208,8 @@ export default {
 <style scoped>
 @media only screen and (min-width: 768px) {
 
+}
+.q-field--outlined:hover .q-field__control:before {
+  border-color: red;
 }
 </style>
